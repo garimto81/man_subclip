@@ -7,6 +7,7 @@ import {
 } from '@ant-design/icons'
 import VideoLibraryPage from './pages/VideoLibraryPage'
 import UploadPage from './pages/UploadPage'
+import VideoPlayerPage from './pages/VideoPlayerPage'
 import './App.css'
 
 const { Header, Content, Footer } = Layout
@@ -52,7 +53,7 @@ function App() {
             <Routes>
               <Route path="/" element={<VideoLibraryPage />} />
               <Route path="/upload" element={<UploadPage />} />
-              <Route path="/video/:videoId" element={<div>Video Player Page (Coming Soon)</div>} />
+              <Route path="/video/:videoId" element={<VideoPlayerPage />} />
               <Route path="/clips" element={<div>Clips Page (Coming Soon)</div>} />
             </Routes>
           </div>
