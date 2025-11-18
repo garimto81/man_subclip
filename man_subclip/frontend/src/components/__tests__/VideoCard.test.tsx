@@ -127,7 +127,8 @@ describe('VideoCard', () => {
       </BrowserRouter>
     )
 
-    const clipButton = screen.getByText('Clip')
+    // Ant Design Button with disabled prop renders as a button with disabled attribute
+    const clipButton = screen.getByText('Clip').closest('button')
     expect(clipButton).toBeDisabled()
   })
 })
