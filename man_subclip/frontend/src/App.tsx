@@ -5,7 +5,7 @@ import {
   FolderOutlined,
   ScissorOutlined,
 } from '@ant-design/icons'
-import HomePage from './pages/HomePage'
+import VideoLibraryPage from './pages/VideoLibraryPage'
 import UploadPage from './pages/UploadPage'
 import './App.css'
 
@@ -50,8 +50,9 @@ function App() {
         <Content style={{ padding: '24px' }}>
           <div style={{ background: '#fff', padding: 24, minHeight: 'calc(100vh - 134px)' }}>
             <Routes>
-              <Route path="/" element={<HomePage />} />
+              <Route path="/" element={<VideoLibraryPage />} />
               <Route path="/upload" element={<UploadPage />} />
+              <Route path="/video/:videoId" element={<div>Video Player Page (Coming Soon)</div>} />
               <Route path="/clips" element={<div>Clips Page (Coming Soon)</div>} />
             </Routes>
           </div>
