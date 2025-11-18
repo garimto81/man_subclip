@@ -145,7 +145,7 @@ class ApiClient {
     await this.client.delete(`/clips/${clipId}`)
   }
 
-  async getClipDownloadUrl(clipId: string): string {
+  getClipDownloadUrl(clipId: string): string {
     return `${this.client.defaults.baseURL}/clips/${clipId}/download`
   }
 
