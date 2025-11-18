@@ -141,7 +141,7 @@ cd man_subclip/frontend
 npm install
 
 # Run development server
-npm run dev                # Usually http://localhost:5173
+npm run dev                # http://localhost:3000 (configured in vite.config.ts)
 
 # Run tests
 npm test                   # Vitest watch mode
@@ -263,8 +263,16 @@ ffmpeg -ss {start_sec} -to {end_sec} \
 
 ### Environment Variables
 
+**Setup:** Copy `.env.example` to `.env` in both backend/ and frontend/ directories and update values.
+
 **Backend** (`backend/.env`):
 ```bash
+# Application
+APP_NAME=Video Proxy & Subclip Platform
+APP_VERSION=0.1.0
+DEBUG=True
+LOG_LEVEL=INFO
+
 # Database
 DATABASE_URL=postgresql://user:pass@localhost:5432/video_platform
 # Or for local dev:
@@ -275,18 +283,27 @@ NAS_ORIGINALS_PATH=/nas/originals  # Or ./nas/originals for local
 NAS_PROXY_PATH=/nas/proxy
 NAS_CLIPS_PATH=/nas/clips
 
-# CORS
-ALLOWED_ORIGINS=http://localhost:5173
-
-# Optional
-FFMPEG_PATH=/usr/bin/ffmpeg
+# ffmpeg Configuration
+FFMPEG_PATH=/usr/bin/ffmpeg  # or just 'ffmpeg' if in PATH
 FFMPEG_THREADS=4
+FFMPEG_PRESET=fast           # fast, medium, slow
+FFMPEG_CRF=23                # 18-28 (lower = higher quality)
+
+# CORS
+ALLOWED_ORIGINS=http://localhost:3000
+
+# Task Queue (current: fastapi, future: celery)
+TASK_QUEUE=fastapi
+# CELERY_BROKER_URL=redis://localhost:6379/0
+# CELERY_RESULT_BACKEND=redis://localhost:6379/0
 ```
 
 **Frontend** (`frontend/.env`):
 ```bash
 VITE_API_BASE_URL=http://localhost:8000
 ```
+
+**Note:** Vite dev server (port 3000) includes a proxy configuration in `vite.config.ts` that forwards `/api/*` requests to backend at `http://localhost:8000`.
 
 ---
 
@@ -544,7 +561,7 @@ DATABASE_URL=sqlite:///./video_platform.db
 
 **Ensure backend/.env has:**
 ```bash
-ALLOWED_ORIGINS=http://localhost:5173  # Match frontend dev server port
+ALLOWED_ORIGINS=http://localhost:3000  # Match frontend dev server port
 ```
 
 ### "Port already in use"
