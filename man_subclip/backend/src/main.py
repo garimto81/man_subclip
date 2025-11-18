@@ -39,7 +39,9 @@ async def health_check():
     return {"status": "healthy"}
 
 
-# TODO: Include routers
-# from src.api import videos, clips
-# app.include_router(videos.router, prefix="/api/videos", tags=["videos"])
-# app.include_router(clips.router, prefix="/api/clips", tags=["clips"])
+# Include routers
+from src.api.videos import router as videos_router
+app.include_router(videos_router)
+# TODO: Add clips router when implemented
+# from src.api.clips import router as clips_router
+# app.include_router(clips_router)
