@@ -6,6 +6,7 @@ import {
   ScissorOutlined,
 } from '@ant-design/icons'
 import HomePage from './pages/HomePage'
+import UploadPage from './pages/UploadPage'
 import './App.css'
 
 const { Header, Content, Footer } = Layout
@@ -50,7 +51,7 @@ function App() {
           <div style={{ background: '#fff', padding: 24, minHeight: 'calc(100vh - 134px)' }}>
             <Routes>
               <Route path="/" element={<HomePage />} />
-              <Route path="/upload" element={<div>Upload Page (Coming Soon)</div>} />
+              <Route path="/upload" element={<UploadPage />} />
               <Route path="/clips" element={<div>Clips Page (Coming Soon)</div>} />
             </Routes>
           </div>

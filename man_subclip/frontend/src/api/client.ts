@@ -71,7 +71,10 @@ class ApiClient {
     return response.data
   }
 
-  async uploadVideo(file: File): Promise<Video> {
+  async uploadVideo(
+    file: File,
+    onProgress?: (progress: number) => void
+  ): Promise<Video> {
     const formData = new FormData()
     formData.append('file', file)
 
@@ -80,6 +83,14 @@ class ApiClient {
         'Content-Type': 'multipart/form-data',
       },
       timeout: 300000, // 5 minutes for large uploads
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          )
+          onProgress(percentCompleted)
+        }
+      },
     })
     return response.data
   }
