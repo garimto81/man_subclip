@@ -1,7 +1,7 @@
 """
 Video API Endpoints
 """
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 import uuid
@@ -12,7 +12,10 @@ from src.models import Video
 from src.schemas.video import VideoResponse, VideoListResponse
 from src.services.storage import StorageService, get_storage_service
 from src.services.video_metadata import VideoMetadata, get_video_metadata_service
+from src.tasks.proxy import proxy_conversion_task
+from src.config import get_settings
 
+settings = get_settings()
 router = APIRouter(prefix="/api/videos", tags=["videos"])
 
 # Allowed video extensions
@@ -180,3 +183,79 @@ def delete_video(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete video: {str(e)}"
         )
+
+
+@router.post("/{video_id}/proxy", response_model=VideoResponse)
+def create_proxy(
+    video_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """
+    Start proxy conversion for a video
+
+    - Starts background task to convert video to HLS proxy
+    - Updates proxy_status: pending → processing → completed/failed
+    - Returns updated video immediately (status will be 'processing')
+    """
+    video = db.query(Video).filter(Video.video_id == video_id).first()
+
+    if not video:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Video {video_id} not found"
+        )
+
+    # Check if proxy already exists or is processing
+    if video.proxy_status == "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Proxy already exists"
+        )
+
+    if video.proxy_status == "processing":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Proxy conversion already in progress"
+        )
+
+    # Start background conversion task
+    background_tasks.add_task(
+        proxy_conversion_task,
+        video_id=video_id,
+        proxy_base_path=settings.nas_proxy_path
+    )
+
+    # Update status to processing
+    video.proxy_status = "processing"
+    db.commit()
+    db.refresh(video)
+
+    return video
+
+
+@router.get("/{video_id}/proxy/status")
+def get_proxy_status(
+    video_id: uuid.UUID,
+    db: Session = Depends(get_db)
+):
+    """
+    Get proxy conversion status
+
+    Returns:
+        Dict with 'status' (pending/processing/completed/failed) and 'proxy_path'
+    """
+    video = db.query(Video).filter(Video.video_id == video_id).first()
+
+    if not video:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Video {video_id} not found"
+        )
+
+    return {
+        "video_id": str(video_id),
+        "proxy_status": video.proxy_status,
+        "proxy_path": video.proxy_path,
+        "filename": video.filename
+    }
