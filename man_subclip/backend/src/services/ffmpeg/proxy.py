@@ -73,8 +73,13 @@ class ProxyConverter:
             # Build ffmpeg command
             stream = ffmpeg.input(input_path)
 
-            # Video processing
-            video = stream.video.filter('scale', scale)
+            # Video processing - split scale parameter (e.g., "1280:720" -> w=1280, h=720)
+            if ':' in scale:
+                width, height = scale.split(':')
+                video = stream.video.filter('scale', w=width, h=height)
+            else:
+                # If no colon, assume width only with proportional height
+                video = stream.video.filter('scale', w=scale, h=-1)
 
             # Audio processing
             audio = stream.audio
