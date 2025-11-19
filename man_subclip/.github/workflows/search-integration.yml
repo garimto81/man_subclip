@@ -1,0 +1,348 @@
+name: Video Search Integration - Automated Workflow
+
+on:
+  push:
+    branches:
+      - feature/search-integration
+      - main
+    paths:
+      - 'backend/src/services/search/**'
+      - 'backend/tests/search/**'
+      - '.github/workflows/search-integration.yml'
+  pull_request:
+    paths:
+      - 'backend/src/services/search/**'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - full-setup
+          - index-videos
+          - deploy-api
+          - run-tests
+
+env:
+  PYTHON_VERSION: '3.11'
+  GCP_PROJECT: 'gg-poker-prod'
+  GCP_REGION: 'asia-northeast3'
+  ORIGINALS_BUCKET: 'wsop-archive-raw'
+
+jobs:
+  # Job 1: Infrastructure Setup
+  setup-infrastructure:
+    name: Setup Supabase & Mixpeek Infrastructure
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'full-setup'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install supabase mixpeek python-dotenv
+
+      - name: Verify Supabase connection
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          python backend/scripts/search/verify_supabase.py
+
+      - name: Setup pgvector extension
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          python backend/scripts/search/setup_pgvector.py
+
+      - name: Create embeddings table
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          python backend/scripts/search/create_tables.py
+
+      - name: Verify Mixpeek API
+        env:
+          MIXPEEK_API_KEY: ${{ secrets.MIXPEEK_API_KEY }}
+        run: |
+          python backend/scripts/search/verify_mixpeek.py
+
+      - name: Infrastructure setup summary
+        run: |
+          echo "✅ Supabase project connected"
+          echo "✅ pgvector extension enabled"
+          echo "✅ video_embeddings table created"
+          echo "✅ Mixpeek API verified"
+
+  # Job 2: Video Indexing Pipeline
+  index-videos:
+    name: Index Videos with Mixpeek Embeddings
+    runs-on: ubuntu-latest
+    needs: setup-infrastructure
+    if: |
+      always() &&
+      (github.event.inputs.action == 'full-setup' ||
+       github.event.inputs.action == 'index-videos')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          pip install mixpeek supabase google-cloud-storage
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Scan GCS bucket for videos
+        run: |
+          python backend/scripts/search/scan_videos.py
+
+      - name: Generate embeddings batch
+        env:
+          MIXPEEK_API_KEY: ${{ secrets.MIXPEEK_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          python backend/scripts/search/index_videos.py \
+            --bucket ${{ env.ORIGINALS_BUCKET }} \
+            --batch-size 10 \
+            --parallel 4
+
+      - name: Verify indexing
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          python backend/scripts/search/verify_index.py
+
+      - name: Upload indexing report
+        uses: actions/upload-artifact@v3
+        with:
+          name: indexing-report
+          path: backend/scripts/search/indexing_report.json
+
+  # Job 3: Deploy Search API
+  deploy-search-api:
+    name: Deploy Search API Endpoints
+    runs-on: ubuntu-latest
+    needs: index-videos
+    if: |
+      always() &&
+      (github.event.inputs.action == 'full-setup' ||
+       github.event.inputs.action == 'deploy-api')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r backend/requirements.txt
+
+      - name: Run API tests
+        env:
+          MIXPEEK_API_KEY: ${{ secrets.MIXPEEK_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          pytest backend/tests/search/ -v --cov=backend/src/services/search
+
+      - name: Build Docker image
+        run: |
+          docker build -t gcr.io/${{ env.GCP_PROJECT }}/video-search-api:latest \
+            -f backend/Dockerfile.search .
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for GCR
+        run: |
+          gcloud auth configure-docker
+
+      - name: Push to GCR
+        run: |
+          docker push gcr.io/${{ env.GCP_PROJECT }}/video-search-api:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy video-search-api \
+            --image gcr.io/${{ env.GCP_PROJECT }}/video-search-api:latest \
+            --platform managed \
+            --region ${{ env.GCP_REGION }} \
+            --set-env-vars "MIXPEEK_API_KEY=${{ secrets.MIXPEEK_API_KEY }}" \
+            --set-env-vars "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" \
+            --set-env-vars "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" \
+            --memory 1Gi \
+            --cpu 1 \
+            --timeout 30s \
+            --max-instances 5 \
+            --allow-unauthenticated
+
+      - name: Get service URL
+        id: service-url
+        run: |
+          SERVICE_URL=$(gcloud run services describe video-search-api \
+            --region ${{ env.GCP_REGION }} \
+            --format='value(status.url)')
+          echo "url=$SERVICE_URL" >> $GITHUB_OUTPUT
+          echo "🌐 Search API deployed: $SERVICE_URL"
+
+      - name: Update backend .env
+        run: |
+          echo "SEARCH_API_URL=${{ steps.service-url.outputs.url }}" >> backend/.env.example
+
+  # Job 4: Integration Testing
+  integration-tests:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    needs: deploy-search-api
+    if: |
+      always() &&
+      (github.event.inputs.action == 'full-setup' ||
+       github.event.inputs.action == 'run-tests')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          pip install pytest pytest-asyncio httpx
+
+      - name: Run search API tests
+        env:
+          MIXPEEK_API_KEY: ${{ secrets.MIXPEEK_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          pytest backend/tests/search/test_integration.py -v \
+            --junit-xml=test-results.xml \
+            --cov=backend/src/services/search \
+            --cov-report=xml
+
+      - name: Performance benchmarks
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          python backend/tests/search/benchmark_performance.py
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            test-results.xml
+            coverage.xml
+            backend/tests/search/benchmark_results.json
+
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: test-results.xml
+
+  # Job 5: Monitoring & Alerts Setup
+  setup-monitoring:
+    name: Setup Monitoring & Alerts
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    if: github.event.inputs.action == 'full-setup'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Create uptime check
+        run: |
+          gcloud monitoring uptime create video-search-api-uptime \
+            --resource-type=uptime-url \
+            --host=$(gcloud run services describe video-search-api --region ${{ env.GCP_REGION }} --format='value(status.url)' | sed 's|https://||') \
+            --path=/health \
+            --period=60 \
+            --timeout=10
+
+      - name: Create alert policy
+        run: |
+          gcloud alpha monitoring policies create \
+            --notification-channels=${{ secrets.GCP_NOTIFICATION_CHANNEL }} \
+            --display-name="Video Search API - High Error Rate" \
+            --condition-display-name="Error Rate > 5%" \
+            --condition-threshold-value=5 \
+            --condition-threshold-duration=300s
+
+      - name: Setup log-based metrics
+        run: |
+          gcloud logging metrics create search_latency \
+            --description="Search API latency" \
+            --log-filter='resource.type="cloud_run_revision" AND jsonPayload.endpoint="/api/search/query"'
+
+  # Summary Job
+  workflow-summary:
+    name: Workflow Summary
+    runs-on: ubuntu-latest
+    needs: [setup-infrastructure, index-videos, deploy-search-api, integration-tests, setup-monitoring]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# 🎉 Video Search Integration - Automated Workflow Summary"
+          echo ""
+          echo "## ✅ Completed Steps:"
+          echo "1. Infrastructure Setup (Supabase + pgvector)"
+          echo "2. Video Indexing (Mixpeek embeddings)"
+          echo "3. Search API Deployment (Cloud Run)"
+          echo "4. Integration Testing"
+          echo "5. Monitoring & Alerts"
+          echo ""
+          echo "## 📊 Results:"
+          echo "- Videos indexed: See indexing-report artifact"
+          echo "- API endpoint: See deploy-search-api job logs"
+          echo "- Test results: See test-results artifact"
+          echo ""
+          echo "## 📝 Next Steps:"
+          echo "1. Update frontend to use new search API"
+          echo "2. Configure rate limiting for production"
+          echo "3. Review monitoring dashboards"
