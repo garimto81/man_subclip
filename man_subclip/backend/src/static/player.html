@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HLS Video Player - Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .video-container {
+            background: #000;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        video {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 4px;
+            display: block;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+        .presets {
+            margin-bottom: 20px;
+        }
+        .preset-button {
+            background: #28a745;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        .preset-button:hover {
+            background: #218838;
+        }
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .info-box code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .timeline-editor {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .timeline-editor h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .timecode-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            align-items: flex-end;
+        }
+        .timecode-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .timecode-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+        }
+        .timecode-input {
+            width: 150px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .duration-display {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            color: #007bff;
+            padding: 8px;
+        }
+        .control-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .control-btn:hover {
+            background: #5a6268;
+        }
+        .play-selection-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        .play-selection-btn:hover {
+            background: #218838;
+        }
+        .timeline-container {
+            background: white;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+        }
+        #timeline {
+            cursor: pointer;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .playback-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .playback-controls label {
+            font-weight: 600;
+            color: #333;
+        }
+        .playback-controls select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .download-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        .download-btn:hover {
+            background: #ee5a52;
+        }
+        .download-status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 4px;
+            display: none;
+        }
+        .download-status.show {
+            display: block;
+        }
+        .download-status.downloading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .download-status.ready {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .download-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .download-link {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .download-link:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 HLS Video Player</h1>
+        <p class="subtitle">Transcoder API로 생성된 HLS 영상을 브라우저에서 재생합니다</p>
+
+        <div class="info-box">
+            <h3>ℹ️ 사용 방법</h3>
+            <p>1. 아래 프리셋 버튼을 클릭하거나</p>
+            <p>2. GCS HLS URL을 직접 입력하세요</p>
+            <p><strong>GCS URL 형식:</strong> <code>gs://버킷명/경로/master.m3u8</code></p>
+            <p><strong>HTTP URL 형식:</strong> <code>https://storage.googleapis.com/버킷명/경로/master.m3u8</code></p>
+        </div>
+
+        <div class="presets">
+            <button class="preset-button" onclick="loadPreset1()">
+                📹 Test Video 1 (h_wsop24_ev1_17150020)
+            </button>
+            <button class="preset-button" onclick="loadPreset2()">
+                📹 Test Video 2 (h_wsop24_ev1_sample_03) - 159초
+            </button>
+            <button class="preset-button" onclick="loadPresetShortClip()" style="background: #ff6b6b;">
+                ✂️ Short Clip (78~136초 구간, 58초)
+            </button>
+        </div>
+
+        <div class="controls">
+            <div class="input-group">
+                <label for="videoUrl">HLS 영상 URL (GCS 또는 HTTP):</label>
+                <input
+                    type="text"
+                    id="videoUrl"
+                    placeholder="gs://wsop-archive-proxy/wsop24_ev1_part1/master.m3u8"
+                    value="gs://wsop-archive-proxy/wsop24_ev1_part1/master.m3u8"
+                >
+            </div>
+            <button onclick="loadVideo()">🎥 영상 재생</button>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div class="video-container">
+            <video id="video" controls></video>
+        </div>
+
+        <!-- Timeline Editor -->
+        <div class="timeline-editor">
+            <h3>✂️ 구간 편집</h3>
+
+            <div class="timecode-row">
+                <div class="timecode-group">
+                    <label>In Point:</label>
+                    <input type="text" id="inPoint" placeholder="00:00:00.000" class="timecode-input">
+                    <button onclick="setInPoint()" class="control-btn">Set In</button>
+                    <button onclick="goToInPoint()" class="control-btn">→ In</button>
+                </div>
+                <div class="timecode-group">
+                    <label>Out Point:</label>
+                    <input type="text" id="outPoint" placeholder="00:00:00.000" class="timecode-input">
+                    <button onclick="setOutPoint()" class="control-btn">Set Out</button>
+                    <button onclick="goToOutPoint()" class="control-btn">→ Out</button>
+                </div>
+                <div class="timecode-group">
+                    <label>Duration:</label>
+                    <span id="selectionDuration" class="duration-display">00:00:00.000</span>
+                </div>
+            </div>
+
+            <div class="timeline-container">
+                <canvas id="timeline" width="1000" height="80"></canvas>
+            </div>
+
+            <div class="playback-controls">
+                <button onclick="playSelection()" class="play-selection-btn">🔁 구간 미리보기 (Loop)</button>
+                <button onclick="stopSelection()" class="control-btn">⏹️ 정지</button>
+                <button onclick="downloadClip()" class="download-btn">💾 서브클립 다운로드</button>
+                <label>재생 속도:</label>
+                <select id="playbackSpeed" onchange="changeSpeed()">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2x</option>
+                </select>
+            </div>
+
+            <div id="downloadStatus" class="download-status"></div>
+        </div>
+
+        <div class="info-box">
+            <h3>📊 현재 상태</h3>
+            <p id="videoInfo">영상을 로드하면 정보가 표시됩니다</p>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const videoUrl = document.getElementById('videoUrl');
+        const status = document.getElementById('status');
+        const videoInfo = document.getElementById('videoInfo');
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        function convertGcsToHttp(url) {
+            // gs://bucket/path -> https://storage.googleapis.com/bucket/path
+            if (url.startsWith('gs://')) {
+                return url.replace('gs://', 'https://storage.googleapis.com/');
+            }
+            return url;
+        }
+
+        function loadPreset1() {
+            videoUrl.value = 'gs://wsop-archive-proxy/wsop24_ev1_part1/master.m3u8';
+            loadVideo();
+        }
+
+        function loadPreset2() {
+            videoUrl.value = 'gs://wsop-archive-proxy/wsop24_ev1_part1/master.m3u8';
+            loadVideo();
+        }
+
+        function loadPresetShortClip() {
+            videoUrl.value = 'gs://wsop-archive-proxy/wsop24_ev1_part1_short/master.m3u8';
+            loadVideo();
+        }
+
+        function loadVideo() {
+            const url = videoUrl.value.trim();
+            if (!url) {
+                showStatus('❌ URL을 입력해주세요', 'error');
+                return;
+            }
+
+            // GCS URL을 HTTP URL로 변환
+            const httpUrl = convertGcsToHttp(url);
+
+            showStatus(`⏳ 영상 로딩 중... (${httpUrl})`, 'info');
+
+            if (Hls.isSupported()) {
+                let hls = new Hls({
+                    debug: false,  // 콘솔 로그 줄이기
+                    enableWorker: true,
+                    lowLatencyMode: false,
+                    backBufferLength: 30,  // 90초 -> 30초로 줄임
+                    maxBufferLength: 30,
+                    maxMaxBufferLength: 60,
+                    manifestLoadingTimeOut: 10000,
+                    manifestLoadingMaxRetry: 4,
+                    levelLoadingTimeOut: 10000,
+                    levelLoadingMaxRetry: 4,
+                    fragLoadingTimeOut: 20000,
+                    fragLoadingMaxRetry: 6
+                });
+
+                let recoverAttempts = 0;
+                const MAX_RECOVER_ATTEMPTS = 3;
+
+                hls.loadSource(httpUrl);
+                hls.attachMedia(video);
+
+                hls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
+                    showStatus('✅ HLS 매니페스트 로드 성공! 재생 버튼을 클릭하세요', 'success');
+                    videoInfo.innerHTML = `
+                        <strong>영상 정보:</strong><br>
+                        - URL: <code>${httpUrl}</code><br>
+                        - Levels: ${data.levels.length}개<br>
+                        - 해상도: ${data.levels.map(l => `${l.width}x${l.height}`).join(', ')}<br>
+                        - 비트레이트: ${data.levels.map(l => `${(l.bitrate / 1000000).toFixed(2)} Mbps`).join(', ')}
+                    `;
+
+                    // 자동 재생 시도
+                    video.play().catch(e => {
+                        console.log('자동 재생 불가 (사용자 인터랙션 필요):', e);
+                    });
+                });
+
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    console.error('HLS Error:', data);
+
+                    if (data.fatal) {
+                        switch(data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                showStatus(`❌ 네트워크 오류: ${data.details}`, 'error');
+                                console.error('Network error details:', data);
+
+                                // 네트워크 오류 복구 시도
+                                if (recoverAttempts < MAX_RECOVER_ATTEMPTS) {
+                                    recoverAttempts++;
+                                    showStatus(`⏳ 네트워크 복구 시도 중... (${recoverAttempts}/${MAX_RECOVER_ATTEMPTS})`, 'info');
+                                    hls.startLoad();
+                                } else {
+                                    showStatus('❌ 네트워크 복구 실패. 페이지를 새로고침 하세요.', 'error');
+                                }
+                                break;
+
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                showStatus(`❌ 미디어 오류: ${data.details}`, 'error');
+                                console.error('Media error details:', data);
+
+                                // 미디어 오류 복구 시도
+                                if (recoverAttempts < MAX_RECOVER_ATTEMPTS) {
+                                    recoverAttempts++;
+                                    showStatus(`⏳ 미디어 복구 시도 중... (${recoverAttempts}/${MAX_RECOVER_ATTEMPTS})`, 'info');
+
+                                    try {
+                                        hls.recoverMediaError();
+                                    } catch (e) {
+                                        console.error('Recovery failed:', e);
+                                        // 완전히 재시작
+                                        hls.destroy();
+                                        showStatus('⏳ 플레이어 재시작 중...', 'info');
+                                        setTimeout(() => {
+                                            loadVideo();
+                                        }, 1000);
+                                    }
+                                } else {
+                                    showStatus('❌ 미디어 복구 실패. 페이지를 새로고침 하세요.', 'error');
+                                    hls.destroy();
+                                }
+                                break;
+
+                            default:
+                                showStatus(`❌ 치명적 오류: ${data.details}`, 'error');
+                                console.error('Fatal error:', data);
+                                hls.destroy();
+                                break;
+                        }
+                    } else {
+                        // Non-fatal errors (경고만 표시)
+                        console.warn('HLS non-fatal error:', data);
+                    }
+                });
+
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Safari native HLS support
+                video.src = httpUrl;
+                video.addEventListener('loadedmetadata', function() {
+                    showStatus('✅ 영상 로드 성공! (Safari Native HLS)', 'success');
+                    videoInfo.innerHTML = `
+                        <strong>영상 정보:</strong><br>
+                        - URL: <code>${httpUrl}</code><br>
+                        - 재생 시간: ${video.duration.toFixed(2)}초<br>
+                        - Safari Native HLS 지원
+                    `;
+                    video.play().catch(e => {
+                        console.log('자동 재생 불가:', e);
+                    });
+                });
+                video.addEventListener('error', function(e) {
+                    showStatus(`❌ 영상 로드 실패: ${e.message}`, 'error');
+                });
+            } else {
+                showStatus('❌ 브라우저가 HLS를 지원하지 않습니다', 'error');
+            }
+        }
+
+        // ===== Timeline Editor Functions =====
+
+        let inPoint = 0;  // In marker time (seconds)
+        let outPoint = 0; // Out marker time (seconds)
+        let isLooping = false;
+        const canvas = document.getElementById('timeline');
+        const ctx = canvas ? canvas.getContext('2d') : null;
+
+        // Timecode conversion: seconds -> HH:MM:SS.mmm
+        function secondsToTimecode(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 1000);
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+        }
+
+        // Timecode conversion: HH:MM:SS.mmm -> seconds
+        function timecodeToSeconds(timecode) {
+            const parts = timecode.split(':');
+            if (parts.length !== 3) return 0;
+
+            const hours = parseInt(parts[0]) || 0;
+            const minutes = parseInt(parts[1]) || 0;
+            const secondsAndMs = parts[2].split('.');
+            const seconds = parseInt(secondsAndMs[0]) || 0;
+            const ms = parseInt(secondsAndMs[1]) || 0;
+
+            return hours * 3600 + minutes * 60 + seconds + ms / 1000;
+        }
+
+        // Set In Point at current time
+        function setInPoint() {
+            if (!video.duration) {
+                showStatus('❌ 영상을 먼저 로드하세요', 'error');
+                return;
+            }
+            inPoint = video.currentTime;
+            document.getElementById('inPoint').value = secondsToTimecode(inPoint);
+            updateDuration();
+            drawTimeline();
+            showStatus(`✅ In Point 설정: ${secondsToTimecode(inPoint)}`, 'success');
+        }
+
+        // Set Out Point at current time
+        function setOutPoint() {
+            if (!video.duration) {
+                showStatus('❌ 영상을 먼저 로드하세요', 'error');
+                return;
+            }
+            outPoint = video.currentTime;
+            document.getElementById('outPoint').value = secondsToTimecode(outPoint);
+            updateDuration();
+            drawTimeline();
+            showStatus(`✅ Out Point 설정: ${secondsToTimecode(outPoint)}`, 'success');
+        }
+
+        // Go to In Point
+        function goToInPoint() {
+            if (inPoint > 0) {
+                video.currentTime = inPoint;
+                showStatus(`▶️ In Point로 이동: ${secondsToTimecode(inPoint)}`, 'info');
+            }
+        }
+
+        // Go to Out Point
+        function goToOutPoint() {
+            if (outPoint > 0) {
+                video.currentTime = outPoint;
+                showStatus(`▶️ Out Point로 이동: ${secondsToTimecode(outPoint)}`, 'info');
+            }
+        }
+
+        // Update selection duration display
+        function updateDuration() {
+            const duration = outPoint - inPoint;
+            const durationDisplay = document.getElementById('selectionDuration');
+            if (duration > 0) {
+                durationDisplay.textContent = secondsToTimecode(duration);
+                durationDisplay.style.color = '#28a745';
+            } else {
+                durationDisplay.textContent = '00:00:00.000';
+                durationDisplay.style.color = '#999';
+            }
+        }
+
+        // Play selection (loop between In and Out)
+        function playSelection() {
+            if (inPoint === 0 && outPoint === 0) {
+                showStatus('❌ In/Out Point를 먼저 설정하세요', 'error');
+                return;
+            }
+            if (outPoint <= inPoint) {
+                showStatus('❌ Out Point가 In Point보다 뒤에 있어야 합니다', 'error');
+                return;
+            }
+
+            isLooping = true;
+            video.currentTime = inPoint;
+            video.play();
+            showStatus(`🔁 구간 미리보기 시작 (${secondsToTimecode(inPoint)} ~ ${secondsToTimecode(outPoint)})`, 'success');
+        }
+
+        // Stop selection playback
+        function stopSelection() {
+            isLooping = false;
+            video.pause();
+            showStatus('⏹️ 재생 정지', 'info');
+        }
+
+        // Change playback speed
+        function changeSpeed() {
+            const speed = parseFloat(document.getElementById('playbackSpeed').value);
+            video.playbackRate = speed;
+            showStatus(`⚡ 재생 속도: ${speed}x`, 'info');
+        }
+
+        // Draw timeline canvas
+        function drawTimeline() {
+            if (!ctx || !video.duration) return;
+
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Background
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, width, height);
+
+            // Timeline track
+            ctx.fillStyle = '#ddd';
+            ctx.fillRect(0, height / 2 - 2, width, 4);
+
+            const duration = video.duration;
+
+            // Selection range (In ~ Out)
+            if (inPoint > 0 && outPoint > inPoint) {
+                const inX = (inPoint / duration) * width;
+                const outX = (outPoint / duration) * width;
+                ctx.fillStyle = 'rgba(40, 167, 69, 0.3)';
+                ctx.fillRect(inX, 0, outX - inX, height);
+            }
+
+            // In marker
+            if (inPoint > 0) {
+                const inX = (inPoint / duration) * width;
+                ctx.fillStyle = '#28a745';
+                ctx.fillRect(inX - 2, 0, 4, height);
+                ctx.fillText('In', inX + 5, 15);
+            }
+
+            // Out marker
+            if (outPoint > 0) {
+                const outX = (outPoint / duration) * width;
+                ctx.fillStyle = '#dc3545';
+                ctx.fillRect(outX - 2, 0, 4, height);
+                ctx.fillText('Out', outX + 5, 15);
+            }
+
+            // Current playhead
+            const currentX = (video.currentTime / duration) * width;
+            ctx.fillStyle = '#007bff';
+            ctx.fillRect(currentX - 1, 0, 2, height);
+        }
+
+        // Timeline click handler
+        if (canvas) {
+            canvas.addEventListener('click', function(e) {
+                if (!video.duration) return;
+
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const percentage = x / canvas.width;
+                const time = percentage * video.duration;
+
+                video.currentTime = time;
+                showStatus(`▶️ ${secondsToTimecode(time)}로 이동`, 'info');
+            });
+        }
+
+        // Video timeupdate event - update playhead and check loop
+        video.addEventListener('timeupdate', function() {
+            drawTimeline();
+
+            // Loop playback
+            if (isLooping && outPoint > 0 && video.currentTime >= outPoint) {
+                video.currentTime = inPoint;
+            }
+        });
+
+        // Video loadedmetadata event - initialize timeline
+        video.addEventListener('loadedmetadata', function() {
+            // Reset markers
+            inPoint = 0;
+            outPoint = 0;
+            document.getElementById('inPoint').value = '';
+            document.getElementById('outPoint').value = '';
+            updateDuration();
+            drawTimeline();
+        });
+
+        // ===== End Timeline Editor Functions =====
+
+        // ===== Download Clip Functions =====
+
+        async function downloadClip() {
+            const downloadStatusEl = document.getElementById('downloadStatus');
+
+            // Validation
+            if (inPoint === 0 && outPoint === 0) {
+                showStatus('❌ In/Out Point를 먼저 설정하세요', 'error');
+                return;
+            }
+            if (outPoint <= inPoint) {
+                showStatus('❌ Out Point가 In Point보다 뒤에 있어야 합니다', 'error');
+                return;
+            }
+
+            // Show downloading status
+            downloadStatusEl.className = 'download-status show downloading';
+            downloadStatusEl.innerHTML = '⏳ 서브클립 생성 중...';
+
+            try {
+                // Call clips API
+                const response = await fetch('/api/clips/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        hand_id: 'h_wsop24_ev1_sample_03',  // TODO: Get from current video
+                        start_seconds: inPoint,
+                        end_seconds: outPoint,
+                        padding_seconds: 0
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                // Show download link
+                downloadStatusEl.className = 'download-status show ready';
+                downloadStatusEl.innerHTML = `
+                    ✅ 서브클립 생성 완료!<br>
+                    <strong>파일 크기</strong>: ${data.file_size_mb} MB<br>
+                    <strong>재생 시간</strong>: ${secondsToTimecode(data.duration_seconds)}<br>
+                    <a href="${data.download_url}" class="download-link" download>💾 다운로드</a>
+                `;
+
+                showStatus(`✅ 서브클립 생성 완료 (${data.clip_id})`, 'success');
+
+            } catch (error) {
+                console.error('Download error:', error);
+                downloadStatusEl.className = 'download-status show error';
+                downloadStatusEl.innerHTML = `❌ 다운로드 실패: ${error.message}`;
+                showStatus(`❌ 다운로드 실패: ${error.message}`, 'error');
+            }
+        }
+
+        // ===== End Download Clip Functions =====
+
+        // 페이지 로드 시 자동으로 첫 영상 로드
+        window.addEventListener('load', function() {
+            showStatus('ℹ️ 프리셋 버튼을 클릭하거나 URL을 입력하고 "영상 재생" 버튼을 클릭하세요', 'info');
+        });
+    </script>
+</body>
+</html>

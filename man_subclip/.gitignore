@@ -66,3 +66,16 @@ backend/build/
 # Logs
 logs/
 *.log
+
+# Archives and backups
+archive*/
+backup*/
+*.bak
+
+# Secrets (GCS Service Account keys)
+backend/secrets/
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!vite.config.json

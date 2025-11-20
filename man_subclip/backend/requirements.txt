@@ -16,6 +16,9 @@ python-dotenv==1.0.0
 pydantic==2.5.3
 pydantic-settings==2.1.0
 
+# Google Cloud Storage (qwen_hand_analysis 연동)
+google-cloud-storage==2.14.0
+
 # Video Search Integration
 mixpeek==0.2.0
 supabase==2.3.4

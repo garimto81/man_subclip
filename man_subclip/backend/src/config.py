@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     # API
     cors_origins: list = ["http://localhost:3000"]
 
+    # GCS (Google Cloud Storage)
+    gcs_project_id: str = "gg-poker-prod"
+    gcs_bucket_name: str = "wsop-archive-raw"
+    gcs_credentials_path: str = "secrets/gcs-key.json"  # backend/ 디렉토리 기준
+    use_gcs: bool = True  # GCS 사용 여부 (False면 로컬 NAS만 사용)
+
     class Config:
         env_file = ".env"
         case_sensitive = False
