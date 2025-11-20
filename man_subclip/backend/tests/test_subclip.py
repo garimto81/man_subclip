@@ -247,7 +247,7 @@ def test_extract_subclip_uses_avoid_negative_ts(extractor, sample_video_file):
     """Test that extract_subclip uses avoid_negative_ts to fix timestamp issues"""
     clip_id = uuid4()
 
-    with patch('src.services.ffmpeg.subclip.subclip.ffmpeg') as mock_ffmpeg:
+    with patch('src.services.ffmpeg.subclip.ffmpeg') as mock_ffmpeg:
         mock_input = MagicMock()
         mock_output = MagicMock()
 
