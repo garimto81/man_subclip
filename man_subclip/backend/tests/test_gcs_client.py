@@ -189,14 +189,19 @@ def test_get_gcs_video_uri_returns_correct_format(mock_credentials):
 def test_list_gcs_videos_filters_by_extension(mock_gcs_client, mock_credentials):
     """Test that only video extensions are returned"""
     # Mock blobs with various extensions
+    def create_blob(filename):
+        blob = MagicMock()
+        blob.name = filename
+        return blob
+
     mock_blobs = [
-        MagicMock(name="video.mp4"),
-        MagicMock(name="video.mov"),
-        MagicMock(name="video.mxf"),
-        MagicMock(name="video.avi"),
-        MagicMock(name="document.pdf"),
-        MagicMock(name="image.jpg"),
-        MagicMock(name="text.txt"),
+        create_blob("video.mp4"),
+        create_blob("video.mov"),
+        create_blob("video.mxf"),
+        create_blob("video.avi"),
+        create_blob("document.pdf"),
+        create_blob("image.jpg"),
+        create_blob("text.txt"),
     ]
 
     mock_bucket = MagicMock()
