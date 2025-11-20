@@ -61,3 +61,17 @@ export interface RootResponse {
   version: string
   status: string
 }
+
+// ========== GCS (Google Cloud Storage) ==========
+
+export interface GCSVideo {
+  gcs_path: string
+  filename: string
+  bucket: string
+  uri: string
+}
+
+export interface GCSVideoListResponse {
+  videos: GCSVideo[]
+  total: number
+}

@@ -4,10 +4,12 @@ import {
   VideoCameraOutlined,
   FolderOutlined,
   ScissorOutlined,
+  CloudOutlined,
 } from '@ant-design/icons'
 import VideoLibraryPage from './pages/VideoLibraryPage'
 import UploadPage from './pages/UploadPage'
 import VideoPlayerPage from './pages/VideoPlayerPage'
+import GCSVideosPage from './pages/GCSVideosPage'
 import './App.css'
 
 const { Header, Content, Footer } = Layout
@@ -19,6 +21,11 @@ function App() {
       key: 'home',
       icon: <FolderOutlined />,
       label: <Link to="/">Video Library</Link>,
+    },
+    {
+      key: 'gcs',
+      icon: <CloudOutlined />,
+      label: <Link to="/gcs-videos">GCS Videos</Link>,
     },
     {
       key: 'upload',
@@ -52,6 +59,7 @@ function App() {
           <div style={{ background: '#fff', padding: 24, minHeight: 'calc(100vh - 134px)' }}>
             <Routes>
               <Route path="/" element={<VideoLibraryPage />} />
+              <Route path="/gcs-videos" element={<GCSVideosPage />} />
               <Route path="/upload" element={<UploadPage />} />
               <Route path="/video/:videoId" element={<VideoPlayerPage />} />
               <Route path="/clips" element={<div>Clips Page (Coming Soon)</div>} />

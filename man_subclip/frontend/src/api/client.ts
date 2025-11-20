@@ -13,6 +13,7 @@ import type {
   ProxyStatusResponse,
   HealthResponse,
   RootResponse,
+  GCSVideoListResponse,
 } from '@/types'
 
 class ApiClient {
@@ -160,6 +161,21 @@ class ApiClient {
         params: { skip, limit },
       }
     )
+    return response.data
+  }
+
+  // ========== GCS (Google Cloud Storage) ==========
+
+  async listGCSVideos(): Promise<GCSVideoListResponse> {
+    const response = await this.client.get<GCSVideoListResponse>('/gcs/videos')
+    return response.data
+  }
+
+  async importFromGCS(gcsPath: string): Promise<Video> {
+    const response = await this.client.post<Video>('/gcs/import', null, {
+      params: { gcs_path: gcsPath },
+      timeout: 120000, // 2 minutes for download and processing
+    })
     return response.data
   }
 }
