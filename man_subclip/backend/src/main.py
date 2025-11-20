@@ -51,6 +51,8 @@ async def health_check():
 # Include routers
 from src.api.videos import router as videos_router
 from src.api.clips import router as clips_router
+from src.api.gcs import router as gcs_router
 
 app.include_router(videos_router)
 app.include_router(clips_router)
+app.include_router(gcs_router)
