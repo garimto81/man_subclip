@@ -34,18 +34,6 @@ class Settings(BaseSettings):
     # API
     cors_origins: list = ["http://localhost:3000"]
 
-    # GCS (Google Cloud Storage)
-    gcs_project_id: str = "gg-poker-prod"
-    gcs_bucket_name: str = "wsop-archive-raw"
-    gcs_credentials_path: str = "secrets/gcs-key.json"
-    use_gcs: bool = True
-
-    # Video Search Integration (Mixpeek + Supabase)
-    mixpeek_api_key: str = ""
-    supabase_url: str = ""
-    supabase_key: str = ""
-    use_video_search: bool = False
-
     class Config:
         env_file = ".env"
         case_sensitive = False

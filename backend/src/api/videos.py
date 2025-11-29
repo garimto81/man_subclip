@@ -185,7 +185,7 @@ def delete_video(
         )
 
 
-@router.post("/{video_id}/proxy", response_model=VideoResponse)
+@router.post("/{video_id}/proxy", response_model=VideoResponse, status_code=status.HTTP_202_ACCEPTED)
 def create_proxy(
     video_id: uuid.UUID,
     background_tasks: BackgroundTasks,
@@ -195,7 +195,7 @@ def create_proxy(
     Start proxy conversion for a video
 
     - Starts background task to convert video to HLS proxy
-    - Updates proxy_status: pending → processing → completed/failed
+    - Updates proxy_status: pending ??processing ??completed/failed
     - Returns updated video immediately (status will be 'processing')
     """
     video = db.query(Video).filter(Video.video_id == video_id).first()
