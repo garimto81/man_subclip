@@ -14,7 +14,7 @@ import {
   Modal,
   Form,
   InputNumber,
-  Progress,
+
 } from 'antd'
 import {
   CloudDownloadOutlined,
@@ -65,7 +65,7 @@ function GCSVideosPage() {
     setImporting(gcsPath)
 
     try {
-      const video = await apiClient.importFromGCS(gcsPath)
+      await apiClient.importFromGCS(gcsPath)
 
       message.success({
         content: `"${filename}" import started! Proxy rendering in progress...`,
