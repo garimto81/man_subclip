@@ -13,8 +13,8 @@ ffmpeg-python==0.2.0
 
 # Utilities
 python-dotenv==1.0.0
-pydantic==2.5.3
-pydantic-settings==2.1.0
+pydantic>=2.10.3,<2.11.0
+pydantic-settings>=2.5.0
 
 # Google Cloud Storage (qwen_hand_analysis 연동)
 google-cloud-storage==2.14.0
