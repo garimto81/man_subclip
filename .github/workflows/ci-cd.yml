@@ -15,6 +15,9 @@ jobs:
         working-directory: ./backend
     env:
       PYTHONPATH: ${{ github.workspace }}/backend
+      NAS_ORIGINAL_PATH: /tmp/nas/original
+      NAS_PROXY_PATH: /tmp/nas/proxy
+      NAS_CLIPS_PATH: /tmp/nas/clips
 
     steps:
       - name: Checkout code
