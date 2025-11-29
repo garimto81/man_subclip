@@ -20,7 +20,7 @@ pydantic-settings==2.1.0
 google-cloud-storage==2.14.0
 
 # Video Search Integration
-mixpeek==0.2.0
+mixpeek==0.15.2
 supabase==2.3.4
 
 # Testing
