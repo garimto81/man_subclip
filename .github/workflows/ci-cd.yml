@@ -18,6 +18,7 @@ jobs:
       NAS_ORIGINAL_PATH: /tmp/nas/original
       NAS_PROXY_PATH: /tmp/nas/proxy
       NAS_CLIPS_PATH: /tmp/nas/clips
+      DATABASE_URL: sqlite:///./test.db
 
     steps:
       - name: Checkout code
